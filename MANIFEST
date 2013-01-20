@@ -1,0 +1,15 @@
+CHANGES
+LICENSE
+MANIFEST
+META.yml
+Makefile.PL
+README
+README.md
+dist.ini
+lib/warnings/everywhere.pm
+t/categories.t
+t/categories_disabled.t
+t/categories_enabled.t
+t/pod.t
+t/pod_coverage.t
+t/warnings.t
