@@ -16,7 +16,8 @@ my %WriteMakefileArgs = (
     "File::Temp" => 0,
     "Test::More" => 0,
     "Test::Pod" => 0,
-    "Test::Pod::Coverage" => "1.08"
+    "Test::Pod::Coverage" => "1.08",
+    "lib::abs" => 0
   },
   "CONFIGURE_REQUIRES" => {
     "ExtUtils::MakeMaker" => "6.30"
@@ -27,11 +28,10 @@ my %WriteMakefileArgs = (
   "NAME" => "warnings::everywhere",
   "PREREQ_PM" => {
     "Carp" => 0,
-    "Package::Alias" => 0,
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.001",
+  "VERSION" => "0.002",
   "test" => {
     "TESTS" => "t/*.t"
   }

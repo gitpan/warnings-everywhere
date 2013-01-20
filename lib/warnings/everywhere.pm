@@ -5,7 +5,7 @@ use strict;
 use warnings;
 no warnings qw(uninitialized);
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 $VERSION = eval $VERSION;
 
 sub import {
@@ -23,151 +23,14 @@ sub unimport {
 }
 
 use Carp;
-use Package::Alias (
-    'warnings::anywhere'          => 'warnings::everywhere',
-    'goddamn::warnings::anywhere' => 'warnings::everywhere'
-);
-
-
-sub categories_enabled {
-    my @categories;
-    for my $category (_warning_categories()) {
-        push @categories, $category
-            if _is_bit_set($warnings::Bits{$category},
-            $warnings::Offsets{$category});
-    }
-    return @categories;
-}
-
-
-sub categories_disabled {
-    my @categories;
-    for my $category (_warning_categories()) {
-        push @categories, $category
-            if !_is_bit_set($warnings::Bits{$category},
-            $warnings::Offsets{$category});
-    }
-    return @categories;
-}
-
-sub _warning_categories {
-    my @categories = sort grep { $_ ne 'all' } keys %warnings::Offsets;
-    return @categories;
-}
-
-
-sub enable_warning_category {
-    my ($category) = @_;
-
-    _check_warning_category($category) or return;
-    _set_category_mask($category, 1);
-    return 1;
-}
-
-sub _set_category_mask {
-    my ($category, $bit_value) = @_;
-
-    # Set or unset the specific category bit value (e.g. if
-    # someone says use warnings qw(uninitialized) or
-    # no warnings qw(uninitialized)).
-    _set_bit_mask(\($warnings::Bits{$category}),
-        $warnings::Offsets{$category}, $bit_value);
-
-    # Compute what the bitmask for all should be.
-    $warnings::Bits{all} = _bitmask_categories_enabled();
-
-    # If we've enabled all categories, we should probably set
-    # the all bit as well, just for tidiness.
-    if ($bit_value) {
-        if (!categories_disabled()) {
-            _set_bit_mask(\$warnings::Bits{all}, $warnings::Offsets{all}, 1);
-        }
-    }
-    ### TODO: fatal warnings
-
-    # Finally, if someone specified the -w flag (which turns on all
-    # warnings, globally), turn it off.
-    $^W = 0;
-}
-
-
-sub disable_warning_category {
-    my ($category) = @_;
-
-    _check_warning_category($category) or return;
-    _set_category_mask($category, 0);
-    return 1;
-}
-
-sub _bitmask_categories_enabled {
-    my $mask;
-    for my $category_enabled (categories_enabled()) {
-        _set_bit_mask(\$mask, $warnings::Offsets{$category_enabled}, 1)
-    }
-    return $mask;
-}
-
-sub _set_bit_mask {
-    my ($mask_ref, $bit_num, $bit_value) = @_;
-
-    # First get the correct byte from the mask, then set that byte's
-    # bit accordingly.
-    # We have to do it this way as warning masks are hundreds of bits wide,
-    # which neither a 32- nor a 64-bit Perl can deal with natively.
-    # The mask might not be long enough, so pad it with null bytes if
-    # we need to first.
-    my $byte_num = int($bit_num / 8);
-    while (length($$mask_ref) < $byte_num) {
-        $$mask_ref .= "\x0";
-    }
-    my $byte_value = substr($$mask_ref, $byte_num, 1);
-    vec($byte_value, $bit_num % 8, 1) = $bit_value;
-    substr($$mask_ref, $byte_num, 1) = $byte_value;
-    return $$mask_ref;
-}
-
-sub _is_bit_set {
-    my ($mask, $bit_num) = @_;
-
-    return vec($mask, int($bit_num / 8), 8) & (1 << ($bit_num % 8));
-}
-
-sub _dump_mask {
-    my ($mask) = @_;
-
-    my $output;
-    for my $byte_num (reverse 0..15) {
-        $output .= sprintf('%08b', vec($mask, $byte_num, 8));
-        $output .= ($byte_num % 4 == 0 ? "\n" : '|');
-    }
-    return $output;
-}
-
-sub _check_warning_category {
-    my ($category) = @_;
-
-    return if $category eq 'all';
-    if (!exists $warnings::Offsets{$category}) {
-        carp "Unrecognised warning category $category";
-        return;
-    }
-    return 1;
-}
-
-
-1;
-
-__END__
-
-=pod
 
 =head1 NAME
 
-warnings::everywhere
+warnings::everywhere - a way of ensuring consistent global warning settings
 
 =head1 VERSION
 
-version 0.001
+This is version 0.002.
 
 =head1 SYNOPSIS
 
@@ -286,14 +149,6 @@ turned off for good.
 
 =back
 
-=head1 NAME
-
-warnings::everywhere - a way of ensuring consistent global warning settings
-
-=head1 VERSION
-
-This is version 0.001.
-
 =head1 SUBROUTINES
 
 warnings::anywhere provides the following functions, mostly for diagnostic
@@ -310,7 +165,18 @@ fiddled with anything, this will be the list of warning categories from
 L<perllexwarn>, minus C<all> which isn't a category itself.
 
 Fatal warnings are ignored for the purpose of this function.
-FIXME: recognise fatal warnings.
+
+=cut
+
+sub categories_enabled {
+    my @categories;
+    for my $category (_warning_categories()) {
+        push @categories, $category
+            if _is_bit_set($warnings::Bits{$category},
+            $warnings::Offsets{$category});
+    }
+    return @categories;
+}
 
 =item categories_disabled
 
@@ -320,7 +186,23 @@ Returns a sorted list of warning categories disabled globally. Before
 you've fiddled with anything, this will be the empty list.
 
 Fatal warnings are ignored for the purpose of this function.
-FIXME:: recognise fatal warnings.
+
+=cut
+
+sub categories_disabled {
+    my @categories;
+    for my $category (_warning_categories()) {
+        push @categories, $category
+            if !_is_bit_set($warnings::Bits{$category},
+            $warnings::Offsets{$category});
+    }
+    return @categories;
+}
+
+sub _warning_categories {
+    my @categories = sort grep { $_ ne 'all' } keys %warnings::Offsets;
+    return @categories;
+}
 
 =item enable_warning_category
 
@@ -329,7 +211,41 @@ FIXME:: recognise fatal warnings.
 Supplied with a valid warning category, enables it for all future
 uses of C<use warnings>.
 
-TODO: what do we do about all?
+=cut
+
+sub enable_warning_category {
+    my ($category) = @_;
+
+    _check_warning_category($category) or return;
+    _set_category_mask($category, 1);
+    return 1;
+}
+
+sub _set_category_mask {
+    my ($category, $bit_value) = @_;
+
+    # Set or unset the specific category bit value (e.g. if
+    # someone says use warnings qw(uninitialized) or
+    # no warnings qw(uninitialized)).
+    _set_bit_mask(\($warnings::Bits{$category}),
+        $warnings::Offsets{$category}, $bit_value);
+
+    # Compute what the bitmask for all should be.
+    $warnings::Bits{all} = _bitmask_categories_enabled();
+
+    # If we've enabled all categories, we should probably set
+    # the all bit as well, just for tidiness.
+    if ($bit_value) {
+        if (!categories_disabled()) {
+            _set_bit_mask(\$warnings::Bits{all}, $warnings::Offsets{all}, 1);
+        }
+    }
+    ### TODO: fatal warnings
+
+    # Finally, if someone specified the -w flag (which turns on all
+    # warnings, globally), turn it off.
+    $^W = 0;
+}
 
 =item disable_warning_category
 
@@ -338,7 +254,77 @@ TODO: what do we do about all?
 Supplied with a valid warning category, disables it for future
 uses of C<use warnings> - even calls to explicitly enable it.
 
+=cut
+
+sub disable_warning_category {
+    my ($category) = @_;
+
+    _check_warning_category($category) or return;
+    _set_category_mask($category, 0);
+    return 1;
+}
+
+sub _bitmask_categories_enabled {
+    my $mask;
+    for my $category_enabled (categories_enabled()) {
+        _set_bit_mask(\$mask, $warnings::Offsets{$category_enabled}, 1)
+    }
+    return $mask;
+}
+
+sub _set_bit_mask {
+    my ($mask_ref, $bit_num, $bit_value) = @_;
+
+    # First get the correct byte from the mask, then set that byte's
+    # bit accordingly.
+    # We have to do it this way as warning masks are hundreds of bits wide,
+    # which neither a 32- nor a 64-bit Perl can deal with natively.
+    # The mask might not be long enough, so pad it with null bytes if
+    # we need to first.
+    my $byte_num = int($bit_num / 8);
+    while (length($$mask_ref) < $byte_num) {
+        $$mask_ref .= "\x0";
+    }
+    my $byte_value = substr($$mask_ref, $byte_num, 1);
+    vec($byte_value, $bit_num % 8, 1) = $bit_value;
+    substr($$mask_ref, $byte_num, 1) = $byte_value;
+    return $$mask_ref;
+}
+
+sub _is_bit_set {
+    my ($mask, $bit_num) = @_;
+
+    return vec($mask, int($bit_num / 8), 8) & (1 << ($bit_num % 8));
+}
+
+sub _dump_mask {
+    my ($mask) = @_;
+
+    my $output;
+    for my $byte_num (reverse 0..15) {
+        $output .= sprintf('%08b', vec($mask, $byte_num, 8));
+        $output .= ($byte_num % 4 == 0 ? "\n" : '|');
+    }
+    return $output;
+}
+
+sub _check_warning_category {
+    my ($category) = @_;
+
+    return if $category eq 'all';
+    if (!exists $warnings::Offsets{$category}) {
+        carp "Unrecognised warning category $category";
+        return;
+    }
+    return 1;
+}
+
 =back
+
+=head1 TO DO
+
+Support for fatal warnings, possibly.
+It's possible it doesn't behave correctly when passed 'all'.
 
 =head1 DIAGNOSTICS
 
@@ -373,15 +359,6 @@ Copyright (c) 2013 Sam Kington.
 This library is free software and may be distributed under the same terms as
 perl itself.
 
-=head1 AUTHOR
-
-Sam Kington <skington@cpan.org>
-
-=head1 COPYRIGHT AND LICENSE
-
-This software is copyright (c) 2013 by Sam Kington <skington@cpan.org>.
-
-This is free software; you can redistribute it and/or modify it under
-the same terms as the Perl 5 programming language system itself.
-
 =cut
+
+1;

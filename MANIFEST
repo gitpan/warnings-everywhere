@@ -6,10 +6,16 @@ Makefile.PL
 README
 README.md
 dist.ini
+lib/goddamn/warnings/anywhere.pm
+lib/warnings/anywhere.pm
 lib/warnings/everywhere.pm
 t/categories.t
 t/categories_disabled.t
 t/categories_enabled.t
+t/grammatically_correct.t
+t/lib/minimal_warnings.pm
 t/pod.t
 t/pod_coverage.t
+t/profane.t
+t/vanilla.t
 t/warnings.t

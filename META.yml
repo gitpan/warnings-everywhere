@@ -8,6 +8,7 @@ build_requires:
   Test::More: 0
   Test::Pod: 0
   Test::Pod::Coverage: 1.08
+  lib::abs: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.30
 dynamic_config: 0
@@ -19,8 +20,7 @@ meta-spec:
 name: warnings-everywhere
 requires:
   Carp: 0
-  Package::Alias: 0
   perl: 5.008
   strict: 0
   warnings: 0
-version: 0.001
+version: 0.002
