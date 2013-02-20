@@ -5,13 +5,16 @@ use strict;
 use warnings;
 no warnings qw(uninitialized);
 
+use English qw(-no_match_vars);
+use File::Spec;
 use File::Temp;
 use Test::More qw(no_plan);
 
 use_ok('warnings::everywhere');
 
 # All modules will use a common set of methods, defined at the end of
-# this test script; pull them in.
+# this test script; pull them in. But only gather warning categories that this
+# version of Perl supports.
 my (%perl_function, $current_function);
 line:
 while (<DATA>) {
@@ -21,20 +24,39 @@ while (<DATA>) {
     };
     $perl_function{$current_function} .= $_;
 }
-my @categories_testable = sort keys %perl_function;
+my %category_implemented = map { $_ => 1 }
+    warnings::everywhere::_warning_categories();
+my @categories_testable
+    = sort grep { $category_implemented{$_} } keys %perl_function;
 if ($ENV{CATEGORY}) {
     @categories_testable = grep { /$ENV{CATEGORY}/ } @categories_testable;
 }
 
 # We need a temporary directory to write this stuff to.
 # When this goes out of scope it should be deleted.
-my $dir = File::Temp->newdir(CLEANUP => 1);
-push @INC, $dir->dirname;
+my ($dir, $dir_object);
+if (File::Temp->can('newdir')) {
+    $dir_object = File::Temp->newdir(CLEANUP => 1);
+    $dir = $dir_object->dirname;
+} else {
+    $dir = File::Spec->tmpdir();
+}
+push @INC, $dir;
 
 # Go through each warning violation in turn, checking that
 # we can disable it (a) individually, (b) as part of use warnings,
 # and (c) as part of use warnings ('all').
+warning:
 for my $warning (@categories_testable) {
+    # The exec test produces unwanted output to STDERR in Windows,
+    # so skip it on those platforms.
+    if (   $warning eq 'exec'
+        && $OSNAME =~ /^ (MSWin32 | cygwin | dos | os2) $/x)
+    {
+        next warning;
+    }
+
+    # Disable the warning, and make sure it's not triggered.
     ok(warnings::everywhere::disable_warning_category($warning),
         "Disable warnings for $warning")
         unless $ENV{FAIL};
@@ -89,8 +111,9 @@ $perl_function{$args{warning}}
 BUILD_PACKAGE
 
     # Write this to a file.
-    ok(open(my $fh_module, '>', $dir->dirname . "/${package_name}.pm"),
-        "We can write a new module $package_name to $dir");
+    ok(open(my $fh_module, '>', $dir . "/${package_name}.pm"),
+        "We can write a new module $package_name to $dir")
+        or diag "Couldn't write file: $!";
     ok(
         (print {$fh_module} $module_contents),
         "We can add our generated module contents"
@@ -142,12 +165,8 @@ sub closure {
 
 # WONTFIX: debugging. Looks like scary internal magic here.
 
-sub deprecated {
-    my @foo;
-    if (defined @foo) {
-        1;
-    }
-}
+# WONTFIX: deprecated. Too much of a moving target, and you shouldn't
+# override this anyway.
 
 sub digit {
     my $hex = hex('a curse upon both houses!');
@@ -213,7 +232,7 @@ sub numeric {
 
 ### FIXME: can't seem to reproduce a once warning
 
-### FIXME: overflow is tricky to trigger on a 64-bit system
+### WONTFIX: overflow is tricky to trigger on a 64-bit system
 
 sub pack {
     sub ultimate_answer {
@@ -230,10 +249,7 @@ sub pipe {
     open (my $fh, "|magritte|")
 }
 
-sub portable {
-    ### TODO: does this still work on 32-bit systems?
-    my $large_number = eval('0b' . (1 x 40));
-}
+### WONTFIX: portable is tricky to trigger reliably on all systems.
 
 sub precedence {
     my ($foo, $bar) = (0, 0);

@@ -4,6 +4,7 @@ author:
   - 'Sam Kington <skington@cpan.org>'
 build_requires:
   English: 0
+  File::Spec: 0
   File::Temp: 0
   Test::More: 0
   Test::Pod: 0
@@ -26,4 +27,4 @@ requires:
 resources:
   homepage: https://github.com/skington/warnings_everywhere
   repository: https://github.com/skington/warnings_everywhere.git
-version: 0.005
+version: 0.006
