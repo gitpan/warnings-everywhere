@@ -5,7 +5,7 @@ use strict;
 use warnings;
 no warnings qw(uninitialized);
 
-our $VERSION = '0.006';
+our $VERSION = '0.007';
 $VERSION = eval $VERSION;
 
 sub import {
@@ -30,7 +30,7 @@ warnings::everywhere - a way of ensuring consistent global warning settings
 
 =head1 VERSION
 
-This is version 0.005.
+This is version 0.007.
 
 =head1 SYNOPSIS
 
@@ -127,7 +127,7 @@ Similarly, this is no help:
 Chatty::Module was pulled in by that other module already by the time
 perl gets to your use statement, so it's ignored.
 
-=item It's vulnerably to anything that sets $^W
+=item It's vulnerable to anything that sets $^W
 
 Any code that sets the global variable $^W, rather than saying C<use warnings>
 or C<warnings->import>, will turn on all warnings everywhere, bypassing the
@@ -161,6 +161,13 @@ after all. So you can't say
 
 and expect to get a warning from the last line. That warning's been
 turned off for good.
+
+=item It won't work for compile-time warnings
+
+It works by fiddling with the (global) %warnings::Bits variable, and that's
+fine for run-time warnings, but compile-time warnings like e.g.
+C<experimental::smartmatch> will still happen, even if you think
+you've disabled them.
 
 =back
 
