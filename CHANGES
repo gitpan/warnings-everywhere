@@ -1,3 +1,19 @@
+0.009 22-12-2014
+
+    [Test bugs]
+		Perl 5.21.2 introduced a new warning, redundant, which
+		fired when sprintf was being called with too many arguments.
+		Cope with this warning, and switch the printf test to test
+		something that won't also fire a redundant warning.
+
+		Thanks to Slaven Rezic for reminding me of this failure.
+
+0.008 25-06-2014
+
+	[Test bugs]
+		Perl 5.8.9 didn't think a dodgy unpack warranted a warning, so
+		switched to something that all perls agree is dodgy.
+
 0.007 30-05-2014
 
     [Test bugs]

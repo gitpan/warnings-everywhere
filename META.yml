@@ -11,9 +11,9 @@ build_requires:
   Test::Pod::Coverage: '1.08'
   lib::abs: '0'
 configure_requires:
-  ExtUtils::MakeMaker: '6.30'
+  ExtUtils::MakeMaker: '0'
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 5.019, CPAN::Meta::Converter version 2.140640'
+generated_by: 'Dist::Zilla version 5.025, CPAN::Meta::Converter version 2.143240'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -27,4 +27,4 @@ requires:
 resources:
   homepage: https://github.com/skington/warnings_everywhere
   repository: https://github.com/skington/warnings_everywhere.git
-version: '0.007'
+version: '0.009'
